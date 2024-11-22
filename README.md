@@ -1,2 +1,2 @@
-# YouTubeAdSkipper
+# YouTubeYoutubeAdSkipper
 YouTube Ad Skipper
