@@ -49,7 +49,7 @@ class YoutubeAdSkipper {
 
           if(this.enabled){
             // 스킵 버튼 처리
-            const skipButton = document.querySelector('.ytp-ad-skip-button');
+            const skipButton = document.querySelector('.ytp-skip-ad-button');
             if (skipButton) {
               skipButton.click();
             }
@@ -57,6 +57,11 @@ class YoutubeAdSkipper {
             const skipButtonModern = document.querySelector('.ytp-ad-skip-button-modern');
             if (skipButtonModern) {
               skipButtonModern.click();
+            }
+
+            const skipAdText = document.querySelector('.ytp-ad-text');
+            if(skipAdText){
+              skipAdText.click();
             }
     
             // 동영상 광고 처리
@@ -91,7 +96,25 @@ class YoutubeAdSkipper {
             if(spNodes != undefined && spNodes.length > 0){
               spNodes.forEach(n => n.remove());
             }
-          }            
+
+            const spNodeTop = document.querySelectorAll('ytd-ad-slot-renderer');
+            if(spNodeTop != undefined && spNodeTop.length > 0){
+              spNodeTop.forEach(n => n.remove());
+            }
+            
+            const compaion = document.querySelector('ytd-companion-slot-renderer');
+            if(compaion != undefined){
+              compaion.remove();
+            }
+          }    
+          
+          // attached message 제거
+          // if(this.enabledSkipSponsorVideo){
+          //   const attachedNodes = document.querySelectorAll('.attached-message');
+          //   if(attachedNodes != undefined && attachedNodes.length > 0){
+          //     attachedNodes.forEach(n => n.remove());
+          //   }
+          // } 
   
         } catch (error) {
           console.debug('Ad skip attempt failed:', error);
