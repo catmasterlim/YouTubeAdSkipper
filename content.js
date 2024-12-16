@@ -47,21 +47,45 @@ class YoutubeAdSkipper {
   
         try {
 
+          const dismissAdSkipApp = document.querySelector('ytd-enforcement-message-view-model #dismiss-button');
+          if(dismissAdSkipApp){
+            try{
+              dismissAdSkipApp.click();
+            }catch(e){
+              console.log('dismissAdSkipApp click error:', e);
+            }
+          }
+
           if(this.enabled){
             // 스킵 버튼 처리
             const skipButton = document.querySelector('.ytp-skip-ad-button');
             if (skipButton) {
-              skipButton.click();
+              try{
+                skipButton.click();
+                skipButton.click();
+              }catch(e){
+                console.log('skipButton click error:', e);
+              }
             }
 
             const skipButtonModern = document.querySelector('.ytp-ad-skip-button-modern');
             if (skipButtonModern) {
-              skipButtonModern.click();
+              try{
+                skipButtonModern.click();
+                skipButtonModern.click();
+              }catch(e){
+                console.log('skipButtonModern click error:', e);
+              }
             }
 
             const skipAdText = document.querySelector('.ytp-ad-text');
             if(skipAdText){
-              skipAdText.click();
+              try{
+                skipAdText.click();
+                skipAdText.click();
+              }catch(e){
+                console.log('skipAdText click error:', e);
+              }
             }
     
             // 동영상 광고 처리
