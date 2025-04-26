@@ -6,15 +6,17 @@ class YoutubeAdSkipper {
       this.skipIntervalDefault = 500;
       this.skipInterval = this.skipIntervalDefault;
       this.enabledSkipSponsorVideo = true;
+      this.enabledSkipOverlay = true; // Add enabledSkipOverlay property
       this.initialize();
     }
   
     async initialize() {
       // 초기 상태 로드
-      const result = await chrome.storage.local.get(['enabled', 'skipInterval', 'enabledSkipSponsorVideo']);
+      const result = await chrome.storage.local.get(['enabled', 'skipInterval', 'enabledSkipSponsorVideo', 'enabledSkipOverlay']);
       this.enabled = result.enabled !== false;
       this.skipInterval = result.skipInterval || 500; // 기본값 500ms 설정
       this.enabledSkipSponsorVideo = result.enabledSkipSponsorVideo !== false; // 기본값 true 설정
+      this.enabledSkipOverlay = result.enabledSkipOverlay !== false; // Load enabledSkipOverlay state
   
       // storage 변경 감지
       chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -35,111 +37,144 @@ class YoutubeAdSkipper {
             this.enabledSkipSponsorVideo = changes.enabledSkipSponsorVideo.newValue; // enabledSkipSponsorVideo 업데이트
             console.log('YoutubeAdSkipper skip sponsor video status changed:', this.enabledSkipSponsorVideo);
           }
+          if (changes.enabledSkipOverlay) {
+            this.enabledSkipOverlay = changes.enabledSkipOverlay.newValue; // Update enabledSkipOverlay state
+            console.log('YoutubeAdSkipper skip overlay status changed:', this.enabledSkipOverlay);
+          }
         }
       });
   
       this.startDetection();
       this.listenForStateChanges();
     }
+
+    removeOverlayAds() {
+      const overlaySelectors = [
+        '.ytp-ad-overlay-container',
+        '.ytp-ad-overlay-slot',
+        '.ytp-ad-overlay-close-button',
+        '.ytp-suggested-action-badge'
+      ];
+  
+      overlaySelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        if (elements && elements.length > 0) {
+          elements.forEach(element => {
+            element.remove();
+          });
+        }
+      });
+    }
+
+    removeSponsorAds() {
+      const spNodes = document.querySelectorAll('ytd-rich-item-renderer:has(.ytd-in-feed-ad-layout-renderer)');
+      if (spNodes && spNodes.length > 0) {
+        spNodes.forEach(n => n.remove());
+      }
+  
+      const spNodeTop = document.querySelectorAll('ytd-ad-slot-renderer');
+      if (spNodeTop && spNodeTop.length > 0) {
+        spNodeTop.forEach(n => n.remove());
+      }
+  
+      const companion = document.querySelector('ytd-companion-slot-renderer');
+      if (companion) {
+        companion.remove();
+      }
+    }
+
+    removeDismissibleAds() {
+      let selectors = [
+        '#dismissible',        
+      ];
+  
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        if (elements && elements.length > 0) {
+          elements.forEach(element => {
+            element.remove();
+          });
+        }
+      });
+    }
+
+    handleSkipButtons() {
+      const skipButton = document.querySelector('.ytp-skip-ad-button');
+      if (skipButton) {
+        try {
+          skipButton.click();
+          skipButton.click();
+        } catch (e) {
+          console.log('skipButton click error:', e);
+        }
+      }
+  
+      const skipButtonModern = document.querySelector('.ytp-ad-skip-button-modern');
+      if (skipButtonModern) {
+        try {
+          skipButtonModern.click();
+          skipButtonModern.click();
+        } catch (e) {
+          console.log('skipButtonModern click error:', e);
+        }
+      }
+  
+      const skipAdText = document.querySelector('.ytp-ad-text');
+      if (skipAdText) {
+        try {
+          skipAdText.click();
+          skipAdText.click();
+        } catch (e) {
+          console.log('skipAdText click error:', e);
+        }
+      }
+    }
+  
+    handleVideoAds() {
+      const video = document.querySelector('video');
+      const adElement = document.querySelector('.ad-showing');
+      if (video && adElement) {
+        video.muted = true;
+        video.currentTime = video.duration;
+      }
+    }
   
     startDetection() {
       this.skipIntervalId = setInterval(() => {
-  
         try {
-
           const dismissAdSkipApp = document.querySelector('ytd-enforcement-message-view-model #dismiss-button');
-          if(dismissAdSkipApp){
-            try{
+          if (dismissAdSkipApp) {
+            try {
               dismissAdSkipApp.click();
-            }catch(e){
+            } catch (e) {
               console.log('dismissAdSkipApp click error:', e);
             }
           }
-
-          if(this.enabled){
-            // 스킵 버튼 처리
-            const skipButton = document.querySelector('.ytp-skip-ad-button');
-            if (skipButton) {
-              try{
-                skipButton.click();
-                skipButton.click();
-              }catch(e){
-                console.log('skipButton click error:', e);
-              }
-            }
-
-            const skipButtonModern = document.querySelector('.ytp-ad-skip-button-modern');
-            if (skipButtonModern) {
-              try{
-                skipButtonModern.click();
-                skipButtonModern.click();
-              }catch(e){
-                console.log('skipButtonModern click error:', e);
-              }
-            }
-
-            const skipAdText = document.querySelector('.ytp-ad-text');
-            if(skipAdText){
-              try{
-                skipAdText.click();
-                skipAdText.click();
-              }catch(e){
-                console.log('skipAdText click error:', e);
-              }
-            }
-    
-            // 동영상 광고 처리
-            const video = document.querySelector('video');
-            const adElement = document.querySelector('.ad-showing');
-            if (video && adElement) {
-              video.muted = true;
-              video.currentTime = video.duration;
-            }
-    
-            // 오버레이 광고 제거
-            const overlaySelectors = [
-              '.ytp-ad-overlay-container',
-              '.ytp-ad-overlay-slot',
-              '.ytp-ad-overlay-close-button',
-              '.ytp-suggested-action-badge'
-            ];
-    
-            overlaySelectors.forEach(selector => {
-              const elements = document.querySelectorAll(selector);
-              if(elements != undefined && elements.length > 0){
-                elements.forEach(element => {
-                  element.remove();
-               });
-            }
-            });
-        }
-
-          // 스폰서 영상 제거
-          if(this.enabledSkipSponsorVideo){
-            const spNodes = document.querySelectorAll('ytd-rich-item-renderer:has(.ytd-in-feed-ad-layout-renderer)');
-            if(spNodes != undefined && spNodes.length > 0){
-              spNodes.forEach(n => n.remove());
-            }
-
-            const spNodeTop = document.querySelectorAll('ytd-ad-slot-renderer');
-            if(spNodeTop != undefined && spNodeTop.length > 0){
-              spNodeTop.forEach(n => n.remove());
-            }
-            
-            const compaion = document.querySelector('ytd-companion-slot-renderer');
-            if(compaion != undefined){
-              compaion.remove();
-            }
-          }    
-          
-          // attached message 제거
-          // if(this.enabledSkipSponsorVideo){
-          //   const attachedNodes = document.querySelectorAll('.attached-message');
-          //   if(attachedNodes != undefined && attachedNodes.length > 0){
-          //     attachedNodes.forEach(n => n.remove());
-          //   }
-          // } 
   
+          if (this.enabled) {
+            try {
+            this.handleSkipButtons();
+            this.handleVideoAds();
+            } catch (error) {
+              console.debug('Ad skip attempt failed:', error);
+            }
+          }
+  
+          if (this.enabledSkipOverlay) {
+            try{
+            this.removeOverlayAds();
+            } catch (error) {
+              console.debug('Ad skip overlay failed:', error);
+            }
+          }
+  
+          if (this.enabledSkipSponsorVideo) {
+            try {
+            this.removeSponsorAds();
+            }catch (error) {
+              console.debug('Ad skip sponsor video failed:', error);
+            }
+          }
         } catch (error) {
           console.debug('Ad skip attempt failed:', error);
         }
@@ -153,6 +188,11 @@ class YoutubeAdSkipper {
           // storage에 상태 저장
           chrome.storage.local.set({ enabled: this.enabled });
           sendResponse({status: 'success'});
+        }
+        if (request.action === 'toggleSkipOverlay') {
+          this.enabledSkipOverlay = request.enabledSkipOverlay;
+          chrome.storage.local.set({ enabledSkipOverlay: this.enabledSkipOverlay });
+          sendResponse({ status: 'success' });
         }
       });
     }
