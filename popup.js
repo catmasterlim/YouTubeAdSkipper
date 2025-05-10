@@ -3,16 +3,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const skipIntervalInput = document.getElementById('skipIntervalInput'); // Input for skipInterval
   const enabledSkipSponsorVideoToggle = document.getElementById('enabledSkipSponsorVideoToggle'); // Toggle for enabledSkipSponsorVideo
   const enabledSkipOverlayToggle = document.getElementById('enabledSkipOverlayToggle'); // Toggle for enabledSkipOverlay
-
-
-  console.log('Popup script loaded : enabledSkipOverlayToggle ', enabledSkipOverlayToggle);
+  const enabledSkipSponsorLinkToggle = document.getElementById('enabledSkipSponsorLinkToggle'); // Toggle for enabledSkipSponsorLink
+  const skipIntervalMainAdInput = document.getElementById('skipIntervalMainAdInput'); // Input for skipIntervalMainAd
 
   // Load saved state
-  chrome.storage.local.get(['enabled', 'skipInterval', 'enabledSkipSponsorVideo', 'enabledSkipOverlay'], (result) => {
+  chrome.storage.local.get(['enabled', 'skipInterval', 'enabledSkipSponsorVideo', 'enabledSkipOverlay', 'enabledSkipSponsorLink'], (result) => {
     toggle.checked = result.enabled !== false;
     skipIntervalInput.value = result.skipInterval || 500; // Default to 500 if not set
     enabledSkipSponsorVideoToggle.checked = result.enabledSkipSponsorVideo !== false; // Default to true if not set
     enabledSkipOverlayToggle.checked = result.enabledSkipOverlay !== false; // Default to true if not set
+    enabledSkipSponsorLinkToggle.checked = result.enabledSkipSponsorLink !== false; // Default to true if not set
+  });
+
+  chrome.storage.sync.get('skipIntervalMainAd', ({ skipIntervalMainAd }) => {
+    skipIntervalMainAdInput.value = skipIntervalMainAd !== undefined ? skipIntervalMainAd : 3000;
   });
 
   // Handle toggle changes
@@ -21,9 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const skipInterval = parseInt(skipIntervalInput.value, 10) || 500; // Default to 500 if invalid
     const enabledSkipSponsorVideo = enabledSkipSponsorVideoToggle.checked;
     const enabledSkipOverlay = enabledSkipOverlayToggle.checked;
+    const enabledSkipSponsorLink = enabledSkipSponsorLinkToggle.checked;
 
-    chrome.storage.local.set({ enabled, skipInterval, enabledSkipSponsorVideo, enabledSkipOverlay }, () => {
-      console.log('Settings saved:', { enabled, skipInterval, enabledSkipSponsorVideo, enabledSkipOverlay });
+    chrome.storage.local.set({ enabled, skipInterval, enabledSkipSponsorVideo, enabledSkipOverlay, enabledSkipSponsorLink }, () => {
+      console.log('Settings saved:', { enabled, skipInterval, enabledSkipSponsorVideo, enabledSkipOverlay, enabledSkipSponsorLink });
     });
 
     // Notify content script
@@ -69,5 +74,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(console.error);
       }
     });
+  });
+
+  // Handle enabledSkipSponsorLink toggle change
+  enabledSkipSponsorLinkToggle.addEventListener('change', () => {
+    const enabledSkipSponsorLink = enabledSkipSponsorLinkToggle.checked;
+    chrome.storage.local.set({ enabledSkipSponsorLink }, () => {
+      console.log('Enabled skip sponsor link saved:', enabledSkipSponsorLink);
+    });
+
+    // Notify content script
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs[0].url.includes('youtube.com')) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'toggleSkipSponsorLink',
+          enabledSkipSponsorLink
+        }).catch(console.error);
+      }
+    });
+  });
+
+  // Handle skipIntervalMainAd input change
+  skipIntervalMainAdInput.addEventListener('change', () => {
+    const skipIntervalMainAd = parseInt(skipIntervalMainAdInput.value, 10);
+    chrome.storage.sync.set({ skipIntervalMainAd });
   });
 });
