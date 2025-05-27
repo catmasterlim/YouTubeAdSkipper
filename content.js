@@ -3,67 +3,70 @@ class YoutubeAdSkipper {
       this.enabled = true;
 
       this.skipIntervalMin = 100;
-      this.skipIntervalDefault = 500;
+      this.skipIntervalDefault = 1000;
       this.skipInterval = this.skipIntervalDefault;
-      this.skipIntervalMainAd = 3000; // Default to 3000 ms if not set
+      this.skipIntervalMainAd = 5000; // Default to 3000 ms if not set
       this.skipIntervalId = null;
       this.skipIntervalMainAdId = null;
       this.enabledSkipSponsorVideo = true;
       this.enabledSkipOverlay = true; // Add enabledSkipOverlay property
       this.enabledSkipSponsorLink = true; // Add enabledSkipSponsorLink property
 
+      // 초기 상태 설정
+      console.log('YoutubeAdSkipper initialize');
+
       this.initialize();
     }
   
     async initialize() {
-      // 초기 상태 로드
-      const result = await chrome.storage.local.get(
-        ['enabled', 'skipInterval', 'enabledSkipSponsorVideo', 'enabledSkipOverlay', 'enabledSkipSponsorLink'], 
-        (result) => {
-          this.enabled = result.enabled !== false;
-          this.skipInterval = result.skipInterval || 500; // 기본값 500ms 설정
-          this.enabledSkipSponsorVideo = result.enabledSkipSponsorVideo !== false; // 기본값 true 설정
-          this.enabledSkipOverlay = result.enabledSkipOverlay !== false; // Load enabledSkipOverlay state
-          this.enabledSkipSponsorLink = result.enabledSkipSponsorLink !== false; // Default to true if not set
-  
-          // storage 변경 감지
-          chrome.storage.onChanged.addListener((changes, namespace) => {
-            if (namespace === 'local') {
-              if (changes.enabled) {
-                this.enabled = changes.enabled.newValue;
-                console.log('YoutubeAdSkipper status changed:', this.enabled);
-              }
-              if (changes.skipInterval) {
-                if(changes.skipInterval.newValue < this.skipIntervalMin){
-                  console.log('YoutubeAdSkipper interval :', this.skipInterval);  
-                  return;
-                }
-                this.skipInterval = changes.skipInterval.newValue; // skipInterval 업데이트
-                console.log('YoutubeAdSkipper skip interval changed:', this.skipInterval);
-              }
-              if (changes.enabledSkipSponsorVideo) {
-                this.enabledSkipSponsorVideo = changes.enabledSkipSponsorVideo.newValue; // enabledSkipSponsorVideo 업데이트
-                console.log('YoutubeAdSkipper skip sponsor video status changed:', this.enabledSkipSponsorVideo);
-              }
-              if (changes.enabledSkipOverlay) {
-                this.enabledSkipOverlay = changes.enabledSkipOverlay.newValue; // Update enabledSkipOverlay state
-                console.log('YoutubeAdSkipper skip overlay status changed:', this.enabledSkipOverlay);
-              }
-              if (changes.enabledSkipSponsorLink){
-                this.enabledSkipSponsorLink = changes.enabledSkipSponsorLink.newValue; // Update enabledSkipSponsorLink state
-                console.log('YoutubeAdSkipper skip sponsor link status changed:', this.enabledSkipSponsorLink);
-              }          
-            }
-          });
+      
 
-          chrome.storage.sync.get('skipIntervalMainAd', ({ skipIntervalMainAd }) => {
-            this.skipIntervalMainAd = skipIntervalMainAd || 3000; // Default to 3000 ms if not set
-          });
-  
-          this.startDetection();
-          this.listenForStateChanges();
+      // 초기 상태 로드
+      const result = await chrome.storage.local.get([
+        'enabled', 'skipInterval', 'enabledSkipSponsorVideo', 'enabledSkipOverlay', 'enabledSkipSponsorLink'
+      ]);
+      this.enabled = result.enabled !== false;
+      this.skipInterval = result.skipInterval || 1000;
+      this.enabledSkipSponsorVideo = result.enabledSkipSponsorVideo !== false;
+      this.enabledSkipOverlay = result.enabledSkipOverlay !== false;
+      this.enabledSkipSponsorLink = result.enabledSkipSponsorLink !== false;
+
+      // storage 변경 감지
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'local') {
+          if (changes.enabled) {
+            this.enabled = changes.enabled.newValue;
+            console.log('YoutubeAdSkipper status changed:', this.enabled);
+          }
+          if (changes.skipInterval) {
+            if(changes.skipInterval.newValue < this.skipIntervalMin){
+              console.log('YoutubeAdSkipper interval :', this.skipInterval);  
+              return;
+            }
+            this.skipInterval = changes.skipInterval.newValue;
+            console.log('YoutubeAdSkipper skip interval changed:', this.skipInterval);
+          }
+          if (changes.enabledSkipSponsorVideo) {
+            this.enabledSkipSponsorVideo = changes.enabledSkipSponsorVideo.newValue;
+            console.log('YoutubeAdSkipper skip sponsor video status changed:', this.enabledSkipSponsorVideo);
+          }
+          if (changes.enabledSkipOverlay) {
+            this.enabledSkipOverlay = changes.enabledSkipOverlay.newValue;
+            console.log('YoutubeAdSkipper skip overlay status changed:', this.enabledSkipOverlay);
+          }
+          if (changes.enabledSkipSponsorLink){
+            this.enabledSkipSponsorLink = changes.enabledSkipSponsorLink.newValue;
+            console.log('YoutubeAdSkipper skip sponsor link status changed:', this.enabledSkipSponsorLink);
+          }          
         }
-      );
+      });
+
+      chrome.storage.sync.get('skipIntervalMainAd', ({ skipIntervalMainAd }) => {
+        this.skipIntervalMainAd = skipIntervalMainAd || 3000; // Default to 3000 ms if not set
+      });
+  
+      this.startDetection();
+      this.listenForStateChanges();
     }
 
     removeOverlayAds() {
@@ -73,7 +76,7 @@ class YoutubeAdSkipper {
         '.ytp-ad-overlay-close-button',
         '.ytp-suggested-action-badge'
       ];
-  
+
       overlaySelectors.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         if (elements && elements.length > 0) {
@@ -87,16 +90,24 @@ class YoutubeAdSkipper {
     removeSponsorAds() {
       const spNodes = document.querySelectorAll('ytd-rich-item-renderer:has(.ytd-in-feed-ad-layout-renderer)');
       if (spNodes && spNodes.length > 0) {
-        spNodes.forEach(n => n.remove());
+        spNodes.forEach(n => {
+          if (n.offsetParent !== null) {
+            n.remove();
+          }
+        });
       }
-  
+
       const spNodeTop = document.querySelectorAll('ytd-ad-slot-renderer');
       if (spNodeTop && spNodeTop.length > 0) {
-        spNodeTop.forEach(n => n.remove());
+        spNodeTop.forEach(n => {
+          if (n.offsetParent !== null) {
+            n.remove();
+          }
+        });
       }
-  
+
       const companion = document.querySelector('ytd-companion-slot-renderer');
-      if (companion) {
+      if (companion && companion.offsetParent !== null) {
         companion.remove();
       }
     }
@@ -105,12 +116,14 @@ class YoutubeAdSkipper {
       let selectors = [
         '[target-id="engagement-panel-ads"]',        
       ];
-  
+
       selectors.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         if (elements && elements.length > 0) {
           elements.forEach(element => {
-            element.remove();
+            if (element.offsetParent !== null) {
+              element.remove();
+            }
           });
         }
       });
@@ -126,7 +139,7 @@ class YoutubeAdSkipper {
           console.log('skipButton click error:', e);
         }
       }
-  
+
       const skipButtonModern = document.querySelector('.ytp-ad-skip-button-modern');
       if (skipButtonModern) {
         try {
@@ -136,7 +149,7 @@ class YoutubeAdSkipper {
           console.log('skipButtonModern click error:', e);
         }
       }
-  
+
       const skipAdText = document.querySelector('.ytp-ad-text');
       if (skipAdText) {
         try {
@@ -158,12 +171,20 @@ class YoutubeAdSkipper {
     }
   
     startDetection() {
+      if (this.skipIntervalId) {
+        clearInterval(this.skipIntervalId);
+      }
+      if (this.skipIntervalMainAdId) {
+        clearInterval(this.skipIntervalMainAdId);
+      }
+
       this.skipIntervalId = setInterval(() => {
         try {
           const dismissAdSkipApp = document.querySelector('ytd-enforcement-message-view-model #dismiss-button');
           if (dismissAdSkipApp) {
             try {
               dismissAdSkipApp.click();
+              console.log('[YoutubeAdSkipper] enforcement-message dismiss 클릭');
             } catch (e) {
               console.log('dismissAdSkipApp click error:', e);
             }
@@ -216,11 +237,6 @@ class YoutubeAdSkipper {
           // storage에 상태 저장
           chrome.storage.local.set({ enabled: this.enabled });
           sendResponse({status: 'success'});
-        }
-        if (request.action === 'toggleSkipOverlay') {
-          this.enabledSkipOverlay = request.enabledSkipOverlay;
-          chrome.storage.local.set({ enabledSkipOverlay: this.enabledSkipOverlay });
-          sendResponse({ status: 'success' });
         }
         if (request.action === 'toggleSkipOverlay') {
           this.enabledSkipOverlay = request.enabledSkipOverlay;
@@ -282,7 +298,7 @@ class YoutubeAdSkipper {
       chrome.storage.local.set({ enabled });
       
       // U
-      const skipInterval = parseInt(skipIntervalInput.value, 10) || 500; // Default to 500 if invalid
+      const skipInterval = parseInt(skipIntervalInput.value, 100) || 1000; // Default to 500 if invalid
       chrome.storage.local.set({ skipInterval });
 
       chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
