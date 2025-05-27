@@ -9,25 +9,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load saved state
   chrome.storage.local.get(['enabled', 'skipInterval', 'skipIntervalMainAd', 'enabledSkipSponsorVideo', 'enabledSkipOverlay', 'enabledSkipSponsorLink'], (result) => {
     toggle.checked = result.enabled !== false;
-    skipIntervalInput.value = result.skipInterval || 1000; // Default to 1000 if not set
+    skipIntervalInput.value = result.skipInterval || 2000; // Default to 1000 if not set
     enabledSkipSponsorVideoToggle.checked = result.enabledSkipSponsorVideo !== false; // Default to true if not set
     enabledSkipOverlayToggle.checked = result.enabledSkipOverlay !== false; // Default to true if not set
     enabledSkipSponsorLinkToggle.checked = result.enabledSkipSponsorLink !== false; // Default to true if not set
-    skipIntervalMainAdInput.value = result.skipIntervalMainAd || 5000; // Default to 5000 if not set
+    skipIntervalMainAdInput.value = result.skipIntervalMainAd || 6000; // Default to 5000 if not set
   });
-
 
   // Handle toggle changes
   toggle.addEventListener('change', () => {
     const enabled = toggle.checked;
-    const skipInterval = parseInt(skipIntervalInput.value, 1000) || 1000; // Default to 1000 if invalid
-    const enabledSkipSponsorVideo = enabledSkipSponsorVideoToggle.checked;
-    const enabledSkipOverlay = enabledSkipOverlayToggle.checked;
-    const enabledSkipSponsorLink = enabledSkipSponsorLinkToggle.checked;
-    const skipIntervalMainAd = parseInt(skipIntervalMainAdInput.value, 1000) || 5000; // Default to 5000 if invalid
 
-    chrome.storage.local.set({ enabled, skipInterval, skipIntervalMainAd, enabledSkipSponsorVideo, enabledSkipOverlay, enabledSkipSponsorLink }, () => {
-      console.log('Settings saved:', { enabled, skipInterval, skipIntervalMainAd, enabledSkipSponsorVideo, enabledSkipOverlay, enabledSkipSponsorLink });
+    chrome.storage.local.set({ enabled}, () => {
+      console.log('Settings saved:', { enabled });
     });
 
     // Notify content script
