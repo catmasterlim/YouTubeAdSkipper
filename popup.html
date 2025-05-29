@@ -71,11 +71,15 @@
 <body>
   <h2>YouTube Ad Skipper</h2>
   <div class="toggle-container">
-    <span>Ad Skipping</span>
+    <span>Ad Main Skipping</span>
     <label class="switch">
-      <input type="checkbox" id="adSkipToggle" checked>
+      <input type="checkbox" id="mainAdSkipToggle" checked>
       <span class="slider"></span>
     </label>
+  </div>
+  <div class="toggle-container">
+    <label for="skipIntervalMainAdInput">Skip Interval Main Ad (ms):</label>
+    <input type="number" id="skipIntervalMainAdInput" value="1000" min="100">
   </div>
 
   <div class="toggle-container">
@@ -108,10 +112,7 @@
     <input type="number" id="skipIntervalInput" value="500" min="100">
   </div>
 
-  <div class="toggle-container">
-    <label for="skipIntervalMainAdInput">Skip Interval Main Ad (ms):</label>
-    <input type="number" id="skipIntervalMainAdInput" value="1000" min="100">
-  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
